@@ -18,6 +18,7 @@ var (
 	concurrency   int32
 	callsDuration string
 	callTimeout   string
+	silentMode    bool
 	jsonIn        bool
 	jsonOut       bool
 
@@ -34,6 +35,7 @@ func init() {
 	callCmd.PersistentFlags().Int32VarP(&concurrency, "concurrent", "c", 1, "-c 5")
 	callCmd.PersistentFlags().StringVarP(&callsDuration, "during", "d", "", "-d 10s")
 	callCmd.PersistentFlags().StringVarP(&callTimeout, "timeout", "t", "0s", "-t 1s")
+	callCmd.PersistentFlags().BoolVar(&silentMode, "silent", false, "--silent disables requests output")
 	callCmd.PersistentFlags().BoolVar(&jsonIn, "json_in", false, "--json_in enables json_input for grpc_cli call")
 	callCmd.PersistentFlags().BoolVar(&jsonOut, "json_out", false, "--json_out enables json_output for grpc_cli call")
 
@@ -131,7 +133,9 @@ func makeCall(args []string) {
 	}
 
 	cmd := exec.Command("grpc_cli", args...)
-	cmd.Stdout = os.Stdout
+	if !silentMode {
+		cmd.Stdout = os.Stdout
+	}
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
