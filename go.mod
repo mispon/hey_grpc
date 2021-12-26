@@ -1,11 +1,10 @@
-module github.com/hey_grpc
+module github.com/mispon/hey_grpc
 
 go 1.17
 
 require (
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6
 )
 
 require (

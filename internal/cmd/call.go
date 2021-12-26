@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hey_grpc/internal/duration"
+	"github.com/mispon/hey_grpc/internal/duration"
 	"github.com/spf13/cobra"
 )
 

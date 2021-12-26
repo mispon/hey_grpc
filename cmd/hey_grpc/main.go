@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/hey_grpc/internal/cmd"
+	"github.com/mispon/hey_grpc/internal/cmd"
 )
 
 func main() {
