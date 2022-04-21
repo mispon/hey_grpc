@@ -8,14 +8,14 @@ Creating this tool was inspired by amazing [hey](https://github.com/rakyll/hey) 
 - `brew install grpc`
 
 next 
-- `sudo chown -R $(whoami) /usr/local/bin` (*optional, if you have not permissions*)
-- `git clone https://github.com/mispon/hey_grpc`
-- `cd hey_grpc`
-- `make build`
+- sudo chown -R $(whoami) /usr/local/bin (*optional, if you have not permissions*)
+- git clone https://github.com/mispon/hey_grpc
+- cd hey_grpc
+- make build
 
 or
-- [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) `pre-compilled binary`
-- `put it were you want`
+- [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) pre-compilled binary
+- put it were you want
 
 ## Usage
 ```
