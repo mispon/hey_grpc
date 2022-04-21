@@ -1,9 +1,9 @@
 module github.com/mispon/hey_grpc
 
-go 1.17
+go 1.18
 
 require (
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.0
 )
 

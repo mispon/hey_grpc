@@ -1,4 +1,4 @@
-package duration
+package flags
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func ParseFlag(flag string) (time.Duration, error) {
+func ParseDuration(flag string) (time.Duration, error) {
 	types := []durationType{
 		{"ms", time.Millisecond},
 		{"s", time.Second},

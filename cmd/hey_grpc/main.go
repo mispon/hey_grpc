@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/mispon/hey_grpc/internal/cmd"
+	"github.com/mispon/hey_grpc/internal/commands"
 )
 
 func main() {
-	err := cmd.Execute()
+	err := commands.Execute()
 	if err != nil {
 		log.Fatal(err)
 	}

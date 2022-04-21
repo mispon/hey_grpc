@@ -1,4 +1,4 @@
-package duration
+package flags
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func Test_ParseFlag(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("check %s parsed to %d", tc.flag, tc.result), func(t *testing.T) {
-			result, err := ParseFlag(tc.flag)
+			result, err := ParseDuration(tc.flag)
 			assert.Equal(t, result, tc.result)
 			if tc.hasError {
 				assert.Error(t, err)
