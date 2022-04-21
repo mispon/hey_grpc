@@ -17,6 +17,9 @@ or
 - [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) pre-compilled binary
 - put it were you want
 
+or just
+- go install github.com/mispon/hey_grpc@latest
+
 ## Usage
 ```
 Usage: grpc_hey call [options...] <host:port> <Service.Method> <Message>
