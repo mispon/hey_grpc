@@ -5,7 +5,7 @@ Creating this tool was inspired by amazing [hey](https://github.com/rakyll/hey) 
 
 ## Installation
 `hey_grpc` is wrapper on `grpc_cli` tool, so it's requered to be istalled:
-- `brew install grpc`
+- brew install grpc
 
 next 
 - sudo chown -R $(whoami) /usr/local/bin (*optional, if you have not permissions*)
