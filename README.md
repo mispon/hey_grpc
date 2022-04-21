@@ -1,10 +1,10 @@
 # hey_grpc
 
-hey_grpc is very simple cli tool for sending multiple requests on gRPC endpoints.   
+`hey_grpc` is very simple cli tool for sending multiple requests on gRPC endpoints.   
 Creating this tool was inspired by amazing [hey](https://github.com/rakyll/hey) project.
 
 ## Installation
-hey_grpc is wrapper on base grpc_cli tool, so it's requered to be istalled:
+`hey_grpc` is wrapper on `grpc_cli` tool, so it's requered to be istalled:
 - `brew install grpc`
 
 next 
