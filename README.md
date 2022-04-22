@@ -30,7 +30,7 @@ How to pass right args for grpc_cli see in [official documetation](https://githu
 
 Options:
   -n  Number of requests to run. Default is 1.
-  -c  Number of workers to run concurrently. Default is 1.
+  -w  Number of workers to run concurrently. Default is 1.
   -d  Duration of sending requests. When duration is reached,
       tool stops and exits. If duration is specified, n is ignored.
       Examples: -d 1h or -d 3m or -d 100s or -d 500ms.
