@@ -3,22 +3,25 @@
 `hey_grpc` is very simple cli tool for sending multiple requests on gRPC endpoints.   
 Creating this tool was inspired by amazing [hey](https://github.com/rakyll/hey) project.
 
-## Installation
+## Dependencies
 `hey_grpc` is wrapper on `grpc_cli` tool, so it's requered to be istalled:
 - brew install grpc
 
-next 
-- sudo chown -R $(whoami) /usr/local/bin (*optional, if you have not permissions*)
-- git clone https://github.com/mispon/hey_grpc
-- cd hey_grpc
-- make build
+## Installation
+```
+go install github.com/mispon/hey_grpc@latest
+```
 
-or
-- [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) pre-compilled binary
-- put it were you want
+*or*
+1. sudo chown -R $(whoami) /usr/local/bin (*optional, if you have not permissions*)
+2. git clone https://github.com/mispon/hey_grpc
+3. cd hey_grpc
+4. make build
 
-or just
-- go install github.com/mispon/hey_grpc@latest
+*or*
+1. [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) pre-compilled binary
+2. put it were you want
+
 
 ## Usage
 ```
@@ -33,9 +36,6 @@ Options:
       Examples: -d 1h or -d 3m or -d 100s or -d 500ms.
   -t  Timeout for each request in seconds. Default is 0s.
       Examples: -t 1h or -t 2m or -t 10s or -t 500ms.
-  
-  -json_in   Enables --json_input option for grpc_cli.
-  -json_out  Enables --json_output option for grpc_cli.
 ```
 
 ## Examples
