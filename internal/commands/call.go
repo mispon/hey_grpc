@@ -8,7 +8,8 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/mispon/hey_grpc/internal/flags"
-	"github.com/mispon/hey_grpc/internal/request"
+	"github.com/mispon/hey_grpc/internal/report"
+	"github.com/mispon/hey_grpc/internal/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -28,14 +29,22 @@ var (
 )
 
 const (
-	maxCalls   = 1_000_000
+	minCalls = 0
+	maxCalls = 1_000_000
+
+	minWorkers = 1
 	maxWorkers = 500
+
+	resultBuf = 100
+)
+
+type (
+	workerFactory func(i int) *worker.Worker
 )
 
 func init() {
 	callCmd.PersistentFlags().Int32VarP(&callsNumber, "number", "n", 0, "-n 10")
-	// todo
-	// callCmd.PersistentFlags().StringVarP(&callsDuration, "during", "d", "0s", "-d 10s")
+	callCmd.PersistentFlags().StringVarP(&callsDuration, "duration", "d", "0s", "-d 10s")
 	callCmd.PersistentFlags().StringVarP(&callTimeout, "timeout", "t", "0s", "-t 1s")
 	callCmd.PersistentFlags().Int32VarP(&workersNumber, "workers", "w", 1, "-w 5")
 	callCmd.PersistentFlags().Int32VarP(&queryPerSec, "qps", "q", 0, "-q 100")
@@ -54,53 +63,111 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// todo
-	/*duration, err := flags.ParseDuration(callsDuration)
+	duration, err := flags.ParseDuration(callsDuration)
 	if err != nil {
 		return err
-	}*/
+	}
+
+	if callsNumber == 0 && duration == 0 {
+		return errors.New(`one of "number" or "duration" shouldn't be equal zero at the same time`)
+	}
 
 	ctx, cancelFn := context.WithCancel(cmd.Context())
 	defer cancelFn()
 
-	var (
-		cn  = min(int(callsNumber), maxCalls)
-		wn  = min(int(workersNumber), maxWorkers)
-		qps = int(queryPerSec)
+	resultCh := make(chan report.Result, resultBuf)
 
-		resultCh = make(chan request.Result, cn*wn)
-		progress = pb.StartNew(cn * wn)
+	rt := report.New(args)
+	rt.Watch(resultCh)
+
+	var (
+		createWorker workerFactory
+		progress     *pb.ProgressBar
+
+		workersNum = flags.Clamp(int(workersNumber), minWorkers, maxWorkers)
+		baseOpts   = []worker.CreateOption{
+			worker.WithQPS(int(queryPerSec)),
+			worker.WithDelay(timeout),
+		}
 	)
 
-	startTime := time.Now()
-	wg := sync.WaitGroup{}
-	wg.Add(wn)
+	if duration > 0 {
+		stopCh := make(chan struct{})
+		progress = pb.StartNew(int(duration.Seconds()))
 
-	for i := 0; i < wn; i++ {
-		go func(wg *sync.WaitGroup) {
-			defer wg.Done()
-			w := request.Worker{
-				Calls:    cn,
-				QPS:      qps,
-				Delay:    timeout,
-				ResultCh: resultCh,
-				Progress: progress,
-			}
-			w.Run(ctx, args)
-		}(&wg)
+		runTimeline(duration, stopCh, progress)
+		createWorker = timelineWorkerFactory(resultCh, stopCh, baseOpts...)
+	} else {
+		cn := flags.Clamp(int(callsNumber), minCalls, maxCalls)
+		progress = pb.StartNew(cn)
+
+		callsBatches := flags.Batches(cn, workersNum)
+		createWorker = quantityWorkerFactory(resultCh, callsBatches, progress, baseOpts...)
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(workersNum)
+	for i := 0; i < workersNum; i++ {
+		go func(wg *sync.WaitGroup, i int) {
+			defer wg.Done()
+			w := createWorker(i)
+			w.Run(ctx, args)
+		}(&wg, i)
+	}
 	wg.Wait()
-	progress.Finish()
-	close(resultCh)
 
-	request.PrintReport(resultCh, args, time.Since(startTime))
+	close(resultCh)
+	progress.Finish()
+	rt.Print()
+
 	return nil
 }
 
-func min(value, limit int) int {
-	if value > limit {
-		return limit
+func timelineWorkerFactory(
+	resultCh chan<- report.Result,
+	stopCh <-chan struct{},
+	baseOpts ...worker.CreateOption,
+) workerFactory {
+	return func(i int) *worker.Worker {
+		baseOpts = append(
+			baseOpts,
+			worker.WithStopCh(stopCh),
+		)
+		return worker.New(resultCh, baseOpts...)
 	}
-	return value
+}
+
+func quantityWorkerFactory(
+	resultCh chan<- report.Result,
+	callsBatches []int,
+	pb *pb.ProgressBar,
+	baseOpts ...worker.CreateOption,
+) workerFactory {
+	return func(i int) *worker.Worker {
+		baseOpts = append(
+			baseOpts,
+			worker.WithCallsNumber(callsBatches[i]),
+			worker.WithProgressBar(pb),
+		)
+		return worker.New(resultCh, baseOpts...)
+	}
+}
+
+func runTimeline(dur time.Duration, stopCh chan struct{}, pb *pb.ProgressBar) {
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+				pb.Increment()
+				time.Sleep(time.Second)
+			}
+		}
+	}()
+
+	go func() {
+		time.Sleep(dur)
+		close(stopCh)
+	}()
 }

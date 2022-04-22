@@ -1,4 +1,4 @@
-package request
+package report
 
 import (
 	"fmt"
@@ -7,33 +7,45 @@ import (
 	"time"
 )
 
-// PrintReport prints requests statistic
-func PrintReport(resultCh <-chan Result, args []string, totalDur time.Duration) {
-	rep := report{
-		request:       strings.Join(args, " "),
-		requestsTotal: len(resultCh),
-		minDur:        math.MaxInt,
-		totalDur:      totalDur,
-	}
-
-	for res := range resultCh {
-		rep.apply(res)
-	}
-
-	fmt.Println(rep)
-}
-
-type report struct {
+type Report struct {
 	request         string
 	successRequests int
 	failedRequests  int
 	requestsTotal   int
-	totalDur        time.Duration
+	startTime       time.Time
 	minDur          time.Duration
 	maxDur          time.Duration
+
+	stopCh chan struct{}
 }
 
-func (r *report) apply(result Result) {
+// New creates new report instance
+func New(args []string) *Report {
+	return &Report{
+		request: strings.Join(args, " "),
+		minDur:  math.MaxInt,
+		stopCh:  make(chan struct{}),
+	}
+}
+
+// Watch process results and apply it to report
+func (r *Report) Watch(resultCh <-chan Result) {
+	r.startTime = time.Now()
+	go func() {
+		for {
+			select {
+			case result, ok := <-resultCh:
+				if ok {
+					r.apply(result)
+				}
+			case <-r.stopCh:
+				return
+			}
+		}
+	}()
+}
+
+func (r *Report) apply(result Result) {
 	if r.minDur > result.RequestDur {
 		r.minDur = result.RequestDur
 	}
@@ -46,9 +58,16 @@ func (r *report) apply(result Result) {
 	} else {
 		r.failedRequests++
 	}
+	r.requestsTotal++
 }
 
-func (r report) String() string {
+// Print finish watching goroutine and prints report
+func (r Report) Print() {
+	close(r.stopCh)
+	fmt.Println(r)
+}
+
+func (r Report) String() string {
 	sb := strings.Builder{}
 
 	sb.WriteString(fmt.Sprintf("Args: %s\n", r.request))
@@ -61,7 +80,7 @@ func (r report) String() string {
 	sb.WriteString("Durations:\n")
 	sb.WriteString(fmt.Sprintf("\tmin:   %v\n", r.minDur))
 	sb.WriteString(fmt.Sprintf("\tmax:   %v\n", r.maxDur))
-	sb.WriteString(fmt.Sprintf("\ttotal: %v\n", r.totalDur))
+	sb.WriteString(fmt.Sprintf("\ttotal: %v\n", time.Since(r.startTime)))
 
 	return sb.String()
 }
