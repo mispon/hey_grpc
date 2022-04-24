@@ -61,10 +61,10 @@ hey_grpc call -n 50 localhost:80 PingService.Ping 's: "ping!"'
 
 or 100 times in 10 workers:
 ```
-hey_grpc call -n 100 -c 10 localhost:80 PingService.Ping 's: "ping!"'
+hey_grpc call -n 100 -w 10 localhost:80 PingService.Ping 's: "ping!"'
 ```
 
 or during 5m in 3 workers with 10 seconds timeout after each call:
 ```
-hey_grpc call -d 5m -c 3 -t 10s localhost:80 PingService.Ping 's: "ping!"'
+hey_grpc call -d 5m -w 3 -t 10s localhost:80 PingService.Ping 's: "ping!"'
 ```
