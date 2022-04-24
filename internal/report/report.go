@@ -5,9 +5,11 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"github.com/mispon/hey_grpc/internal/work"
 )
 
-type Report struct {
+type report struct {
 	request         string
 	successRequests int
 	failedRequests  int
@@ -15,37 +17,23 @@ type Report struct {
 	startTime       time.Time
 	minDur          time.Duration
 	maxDur          time.Duration
-
-	stopCh chan struct{}
 }
 
-// New creates new report instance
-func New(args []string) *Report {
-	return &Report{
+// Print prints results
+func Print(args []string, results []work.Result) {
+	rep := &report{
 		request: strings.Join(args, " "),
 		minDur:  math.MaxInt,
-		stopCh:  make(chan struct{}),
 	}
+
+	for _, res := range results {
+		rep.apply(res)
+	}
+
+	fmt.Println(rep)
 }
 
-// Watch process results and apply it to report
-func (r *Report) Watch(resultCh <-chan Result) {
-	r.startTime = time.Now()
-	go func() {
-		for {
-			select {
-			case result, ok := <-resultCh:
-				if ok {
-					r.apply(result)
-				}
-			case <-r.stopCh:
-				return
-			}
-		}
-	}()
-}
-
-func (r *Report) apply(result Result) {
+func (r *report) apply(result work.Result) {
 	if r.minDur > result.RequestDur {
 		r.minDur = result.RequestDur
 	}
@@ -61,13 +49,7 @@ func (r *Report) apply(result Result) {
 	r.requestsTotal++
 }
 
-// Print finish watching goroutine and prints report
-func (r Report) Print() {
-	close(r.stopCh)
-	fmt.Println(r)
-}
-
-func (r Report) String() string {
+func (r *report) String() string {
 	sb := strings.Builder{}
 
 	sb.WriteString(fmt.Sprintf("Args: %s\n", r.request))
