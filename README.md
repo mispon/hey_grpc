@@ -17,7 +17,7 @@ go install github.com/mispon/hey_grpc@latest
 4. `make build`
 
 --- *or* ---
-1. [download](https://github.com/mispon/hey_grpc/releases/download/v0.0.1/hey_grpc_darwin_amd64) pre-compilled binary
+1. [download](https://github.com/mispon/hey_grpc/releases/download/v0.2.0/hey_grpc_darwin_amd64) pre-compilled binary for MacOS m1
 2. put it were you want
 
 ## Commands
