@@ -91,7 +91,7 @@ func (w *Work) Execute(ctx context.Context, args []string) []Result {
 
 	wg.Wait()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 	close(resultCh)
 
 	<-doneCh

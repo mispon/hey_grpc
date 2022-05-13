@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"time"
 
 	"github.com/mispon/hey_grpc/internal/report"
 
@@ -20,9 +21,9 @@ var (
 
 	callCmd = &cobra.Command{
 		Use:     "call",
-		Short:   "process grpc calls",
-		Example: `  hey_grpc call -n 10 -c 1 host:port protoServer.Method 'i: 1, foo: "bar"'`,
-		RunE:    execute,
+		Short:   "Process grpc calls",
+		Example: `  hey_grpc call -n 10 -c 1 host:port PingService/Ping 'message: "hello"'`,
+		RunE:    call,
 	}
 )
 
@@ -39,23 +40,22 @@ func init() {
 	callCmd.PersistentFlags().StringVarP(&callsDuration, "duration", "d", "0s", "-d 10s")
 	callCmd.PersistentFlags().StringVarP(&callTimeout, "timeout", "t", "0s", "-t 1s")
 	callCmd.PersistentFlags().Int32VarP(&workersNumber, "workers", "w", 1, "-w 5")
-	callCmd.PersistentFlags().Int32VarP(&queryPerSec, "qps", "q", 0, "-q 100")
+	callCmd.PersistentFlags().Int32VarP(&queryPerSec, "QPS", "q", 0, "-q 100")
 
 	rootCmd.AddCommand(callCmd)
 }
 
-// execute runs calls
-func execute(cmd *cobra.Command, args []string) error {
+func call(cmd *cobra.Command, args []string) error {
 	if len(args) < 3 {
-		return errors.New("unexpected arguments number\nsee https://github.com/grpc/grpc/blob/master/doc/command_line_tool.md")
+		return NotEnoughArgsErr
 	}
 
-	timeout, err := flags.ParseDuration(callTimeout)
+	timeout, err := time.ParseDuration(callTimeout)
 	if err != nil {
 		return err
 	}
 
-	duration, err := flags.ParseDuration(callsDuration)
+	duration, err := time.ParseDuration(callsDuration)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		return errors.New(`one of "number" or "duration" shouldn't be equal zero at the same time`)
 	}
 
-	// --duration has higher priority over --number
+	// duration has higher priority over number
 	if duration > 0 {
 		callsNumber = 0
 	}
@@ -73,6 +73,8 @@ func execute(cmd *cobra.Command, args []string) error {
 		cn = flags.Clamp(int(callsNumber), minCalls, maxCalls)
 		wn = flags.Clamp(int(workersNumber), minWorkers, maxWorkers)
 	)
+
+	startTime := time.Now()
 
 	w := work.New(
 		cn,
@@ -83,7 +85,6 @@ func execute(cmd *cobra.Command, args []string) error {
 	)
 	results := w.Execute(cmd.Context(), args)
 
-	report.Print(args, results)
-
+	report.Print(args, startTime, results)
 	return nil
 }

@@ -1,7 +1,13 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
+)
+
+var (
+	NotEnoughArgsErr = errors.New("insufficient number of arguments")
 )
 
 var (

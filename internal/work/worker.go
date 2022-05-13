@@ -2,8 +2,15 @@ package work
 
 import (
 	"context"
-	"os/exec"
+	"errors"
+	"strings"
 	"time"
+
+	"github.com/jhump/protoreflect/dynamic"
+
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
+
+	"github.com/mispon/hey_grpc/internal/reflection"
 )
 
 type Worker struct {
@@ -36,6 +43,12 @@ func newWorker(callsCount int, resultCh chan<- Result, opts ...WorkerOption) *Wo
 // run starts worker job
 // it's blocking call
 func (w *Worker) run(ctx context.Context, args []string) {
+	unaryCall, err := w.prepareUnaryCall(ctx, args)
+	if err != nil {
+		w.results <- Result{Err: err}
+		return
+	}
+
 	var throttle <-chan time.Time
 	if w.qps > 0 {
 		throttle = time.Tick(time.Duration(second / w.qps))
@@ -52,7 +65,7 @@ func (w *Worker) run(ctx context.Context, args []string) {
 			if w.qps > 0 {
 				<-throttle
 			}
-			w.results <- unaryCall(args)
+			w.results <- unaryCall()
 		}
 
 		if finished() {
@@ -63,19 +76,68 @@ func (w *Worker) run(ctx context.Context, args []string) {
 	}
 }
 
-// unaryCall makes a grpc_cli call
-func unaryCall(args []string) Result {
-	args = append([]string{"call"}, args...)
-	cmd := exec.Command("grpc_cli", args...)
-
-	start := time.Now()
-	err := cmd.Run()
-	dur := time.Since(start)
-
-	return Result{
-		RequestDur: dur,
-		Err:        err,
+// prepareUnaryCall is unary call builder
+func (w *Worker) prepareUnaryCall(ctx context.Context, args []string) (func() Result, error) {
+	// create reflection client
+	refClient, conn, err := reflection.NewClientConn(ctx, args[0])
+	if err != nil {
+		return nil, err
 	}
+
+	// parse <service>/<method> string
+	service, method, err := parseService(args[1])
+	if err != nil {
+		return nil, err
+	}
+
+	// resolve service by name
+	svcDesc, err := refClient.ResolveService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	// resolve method by name
+	methodDesc := svcDesc.FindMethodByName(method)
+	if methodDesc == nil {
+		return nil, errors.New("method not exists")
+	}
+
+	// resolve method's input message
+	in := methodDesc.GetInputType().GetFullyQualifiedName()
+	messageDesc, err := refClient.ResolveMessage(in)
+	if err != nil {
+		return nil, err
+	}
+
+	// enrich message the data
+	message := dynamic.NewMessage(messageDesc)
+	err = message.UnmarshalText([]byte(args[2]))
+	if err != nil {
+		return nil, err
+	}
+
+	// create dynamic conn
+	dynConn := grpcdynamic.NewStub(conn)
+
+	return func() Result {
+		start := time.Now()
+		_, rpcErr := dynConn.InvokeRpc(context.TODO(), methodDesc, message)
+		rpcDur := time.Since(start)
+
+		return Result{
+			RequestDur: rpcDur,
+			Err:        rpcErr,
+		}
+	}, nil
+}
+
+func parseService(service string) (string, string, error) {
+	p := strings.Split(service, "/")
+	if len(p) != 2 {
+		return "", "", errors.New("failed to parse <service>/<method> string")
+	}
+
+	return p[0], p[1], nil
 }
 
 // finalizer creates stop check func

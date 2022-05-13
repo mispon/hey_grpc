@@ -20,10 +20,11 @@ type report struct {
 }
 
 // Print prints results
-func Print(args []string, results []work.Result) {
+func Print(args []string, startAt time.Time, results []work.Result) {
 	rep := &report{
-		request: strings.Join(args, " "),
-		minDur:  math.MaxInt,
+		request:   strings.Join(args, " "),
+		startTime: startAt,
+		minDur:    math.MaxInt,
 	}
 
 	for _, res := range results {
